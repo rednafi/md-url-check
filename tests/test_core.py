@@ -1,11 +1,11 @@
 from http import HTTPStatus
 from unittest.mock import create_autospec, patch
 
-from md_url_check import core
+import md_url_check.__main__ as url_check
 
 
 def test_color(capsys):
-    color = core.Color
+    color = url_check.Color
 
     s = f"{color.YELLOW}hello{color.RESET}"
 
@@ -30,7 +30,7 @@ def test_read_chunk(tmp_path, capsys):
 
     p.write_text(md_content)
 
-    chunks = core._read_chunk(file_path=str(p), line_count=2)
+    chunks = url_check._read_chunk(file_path=str(p), line_count=2)
 
     for chunk in chunks:
         assert len(chunk.strip().split("\n")) == 1 or 2
@@ -49,7 +49,7 @@ def test_find_links_from_chunk():
     This is an [inline](http://inline.com) URL.
     """
 
-    links = core._find_links_from_chunk(chunk=chunk)
+    links = url_check._find_links_from_chunk(chunk=chunk)
 
     assert links == [
         ("hello", "https://hello-world.com"),
@@ -64,7 +64,7 @@ def test_find_links_from_markdown(tmp_path, markdown_text):
 
     p.write_text(markdown_text)
 
-    links = core._find_links_from_markdown(markdown_path=str(p))
+    links = url_check._find_links_from_markdown(markdown_path=str(p))
     assert links == [
         "https://arxiv.org/pdf/1901.01973.pdf",
         "https://www.guru99.com/database-normalization.html",
@@ -76,15 +76,15 @@ def test_find_links_from_markdown(tmp_path, markdown_text):
 
 def test_make_request():
     # Lame mock function.
-    mock_make_request = create_autospec(core._make_request, return_value=200)
+    mock_make_request = create_autospec(url_check._make_request, return_value=200)
     status_code = mock_make_request(url="https://httpbin.org/get")
     assert status_code == HTTPStatus.OK
 
 
 def test_log_request(capsys):
     # Mocking the internally called _make_request function.
-    with patch("md_url_check.core._make_request", lambda url: 200):
-        core._log_request(url="https://httpbin.org/get")
+    with patch("md_url_check.__main__._make_request", lambda url: 200):
+        url_check._log_request(url="https://httpbin.org/get")
 
     out, err = capsys.readouterr()
     assert err == ""
@@ -102,8 +102,8 @@ def test_verify_links(tmp_path, capsys, markdown_text):
     p = d / "file.md"
     p.write_text(markdown_text)
 
-    with patch("md_url_check.core._make_request", lambda url: 200):
-        core.verify_links(markdown_path=str(p))
+    with patch("md_url_check.__main__._make_request", lambda url: 200):
+        url_check.verify_links(markdown_path=str(p), thread_count=16, suppress=False)
     out, err = capsys.readouterr()
 
     assert err == ""

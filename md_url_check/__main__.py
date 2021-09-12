@@ -84,7 +84,7 @@ def _make_request(*, url: str) -> int | NoReturn:
     return res.code
 
 
-def _log_request(*, url: str) -> int | NoReturn:
+def _log_request(*, url: str, suppress: bool = False) -> int | NoReturn:
     status_code = _make_request(url=url)
 
     # Stylize.
@@ -114,7 +114,9 @@ def _log_request(*, url: str) -> int | NoReturn:
         f"{status_description_title_fancy}{HTTP_STATUS_TO_DESCRIPTION[status_code]}"
         "\n"
     )
-    print(row_fancy)
+
+    if not suppress:
+        print(row_fancy)
 
     if status_code >= HTTPStatus.BAD_REQUEST:
         raise Exception(
@@ -122,11 +124,25 @@ def _log_request(*, url: str) -> int | NoReturn:
         )
 
 
-def verify_links(*, markdown_path: str) -> None:
+def verify_links(
+    *,
+    markdown_path: str,
+    thread_count: int = 8,
+    suppress: bool = False,
+) -> None:
     links = _find_links_from_markdown(markdown_path=markdown_path)
 
-    with confu.ThreadPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(_log_request, url=link) for link in links]
+    print(f"{Color.CYAN}Checking URL health...{Color.RESET}\n")
+
+    with confu.ThreadPoolExecutor(max_workers=thread_count) as executor:
+        futures = [
+            executor.submit(
+                _log_request,
+                url=link,
+                suppress=suppress,
+            )
+            for link in links
+        ]
 
         for future in futures:
             if exc := future.exception():
@@ -140,18 +156,19 @@ def cli(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         add_help=False,
         usage=f"""
-    [-h] -f FILE_PATH
+
+    md-url-check [-h] -f FILE_PATH [-t THREAD_COUNT] [-s]
 
     {Color.GREEN}Examples{Color.RESET}
     {Color.YELLOW}========={Color.RESET}
 
     {Color.GREEN}Check URLs in a Single File{Color.RESET}
     {Color.BLUE}---------------------------{Color.RESET}
-    md-url-check -f file.md
+    md-url-check -f file.md -t 4
 
     {Color.GREEN}Check URLs in Multiple Files{Color.RESET}
     {Color.BLUE}----------------------------{Color.RESET}
-    echo 'file1.md file2.md' | xargs -n 1 md-url-check -f
+    echo 'file1.md file2.md' | xargs -n 1 md-url-check -f -t 32 -s
 
     {Color.GREEN}Check URLs in Multiple Files in a Folder{Color.RESET}
     {Color.BLUE}----------------------------------------{Color.RESET}
@@ -175,9 +192,19 @@ def cli(argv: list[str] | None = None) -> None:
         required=True,
         help="markdown file path",
     )
-
-    print(
-        f"{Color.BOLD}{Color.PURPLE}\nSimple CLI tool to check URL health in markdown files\n{Color.RESET}"
+    parser.add_argument(
+        "-t",
+        "--thread_count",
+        default=8,
+        required=False,
+        help="number of os threads to be used while making the requests",
+    )
+    parser.add_argument(
+        "-s",
+        "--suppress_output",
+        action="store_true",
+        required=False,
+        help="suppress intermediate outputs",
     )
 
     if not argv:
@@ -187,7 +214,17 @@ def cli(argv: list[str] | None = None) -> None:
         args = parser.parse_args(argv)
 
     args = parser.parse_args()
-    verify_links(markdown_path=args.file_path)
+
+    # Header.
+    print(
+        f"{Color.BOLD}{Color.PURPLE}\n=== Markdown File: {args.file_path.split('/')[-1]}  ===\n{Color.RESET}"
+    )
+
+    verify_links(
+        markdown_path=args.file_path,
+        thread_count=int(args.thread_count),
+        suppress=args.suppress_output,
+    )
 
 
 if __name__ == "__main__":

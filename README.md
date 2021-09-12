@@ -23,7 +23,6 @@ pip install md-url-checker
 
 ## Usage
 
-
 * To check the URLs in a single markdown file, run:
 
     ```
@@ -41,6 +40,28 @@ pip install md-url-checker
     ```
     find . -name '*.md' | xargs -n 1 --no-run-if-empty md-url-check -f
     ```
+
+* Suppress intermediate output:
+
+    ```
+    md-url-check -f file.md -s
+    ```
+
+* Provide the number of threads to be used while making the requests:
+
+    ```
+    md-url-check -f file.md -s -t 32
+    ```
+
+    This uses 32 interleaving threads to make the requests concurrently. Default is 8.
+
+## Know Issues
+
+Currently, the checker fails for urls with parenthesis in them, for example:
+
+```
+https://en.wikipedia.org/wiki/John_Gall_(author)
+```
 
 <div align="center">
 <i> ✨ 🍰 ✨ </i>
