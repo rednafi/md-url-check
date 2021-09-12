@@ -10,6 +10,8 @@
 </div>
 
 
+This CLI tool traverses down a markdown file, extracts all the valid URLs, and checks whether they're accessible or not. In case it encounters a broken link, it raises an error. Internally, this is optimized for larger markdown files and tested for huge markdown files with thousands of links.
+
 ## Installation
 
 Install the CLI using pip:
@@ -39,9 +41,6 @@ pip install md-url-checker
     ```
     find . -name '*.md' | xargs -n 1 --no-run-if-empty md-url-check -f
     ```
-
-## Why
-There are multiple 
 
 <div align="center">
 <i> ✨ 🍰 ✨ </i>
