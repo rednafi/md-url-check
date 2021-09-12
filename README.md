@@ -55,7 +55,7 @@ pip install md-url-checker
 
     This uses 32 interleaving threads to make the requests concurrently. Default is 8.
 
-## Know Issues
+## Known Issues
 
 Currently, the checker fails for urls with parenthesis in them, for example:
 
