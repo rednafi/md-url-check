@@ -31,7 +31,8 @@ jobs:
       - name: Install the Dependencies
         run: |
           echo "Installing the dependencies..."
-          poetry install
+          poetry run pip install md-url-check
+          poetry run pip install -r requirements-dev.txt
 
       - name: Check Linter
         run: |
