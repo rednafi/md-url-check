@@ -1,4 +1,3 @@
-../hook-slinger/.github/dependabot.yml
 version: 2
 updates:
   - package-ecosystem: "pip" # See documentation for possible values
