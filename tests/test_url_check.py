@@ -1,5 +1,5 @@
-import md_url_check.__main__ as url_check
-
+import md_url_check.core as url_check
+from http import HTTPStatus
 
 def test_color(capsys):
     color = url_check.Color
@@ -63,3 +63,10 @@ def test_find_links_from_markdown(tmp_path, capsys, markdown_text):
         "https://www.postgresql.org/docs/13/tutorial-transactions.html",
         "https://devcenter.heroku.com/articles/postgresql-concurrency",
     ]
+
+# This makes a network call, mocking doesn't make any sense here.
+def test_make_request():
+    status_code = url_check._make_request(url="https://httpbin.org/get")
+    assert status_code == HTTPStatus.OK
+
+

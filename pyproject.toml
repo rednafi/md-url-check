@@ -29,7 +29,7 @@ build-backend = "poetry.core.masonry.api"
 
 # CLI entrypoints
 [tool.poetry.scripts]
-md-url-check = "md_url_check.__main__:cli"
+md-url-check = "md_url_check.core:cli"
 
 
 # Linter configuruation.
