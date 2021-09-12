@@ -12,7 +12,7 @@
 
 ## Installation
 
-Install the CLI using pip.
+Install the CLI using pip:
 
 ```
 pip install md-url-checker
@@ -39,3 +39,7 @@ pip install md-url-checker
     ```
     find . -name '*.md' | xargs -n 1 --no-run-if-empty md-url-check -f
     ```
+
+<div align="center">
+<i> ✨ 🍰 ✨ </i>
+</div>
