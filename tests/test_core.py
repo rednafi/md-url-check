@@ -1,8 +1,11 @@
-import md_url_check.core as url_check
 from http import HTTPStatus
+from unittest.mock import create_autospec, patch
+
+from md_url_check import core
+
 
 def test_color(capsys):
-    color = url_check.Color
+    color = core.Color
 
     s = f"{color.YELLOW}hello{color.RESET}"
     print(s)
@@ -25,7 +28,7 @@ def test_read_chunk(tmp_path, capsys):
     p.write_text(md_content)
     out, err = capsys.readouterr()
 
-    chunks = url_check._read_chunk(file_path=str(p), line_count=2)
+    chunks = core._read_chunk(file_path=str(p), line_count=2)
     for chunk in chunks:
         assert len(chunk.strip().split("\n")) == 1 or 2
 
@@ -40,7 +43,7 @@ def test_find_links_from_chunk():
     This is an [inline](http://inline.com) URL.
     """
 
-    links = url_check._find_links_from_chunk(chunk=chunk)
+    links = core._find_links_from_chunk(chunk=chunk)
 
     assert links == [
         ("hello", "https://hello-world.com"),
@@ -55,7 +58,7 @@ def test_find_links_from_markdown(tmp_path, capsys, markdown_text):
 
     p.write_text(markdown_text)
 
-    links = url_check._find_links_from_markdown(markdown_path=str(p))
+    links = core._find_links_from_markdown(markdown_path=str(p))
     assert links == [
         "https://arxiv.org/pdf/1901.01973.pdf",
         "https://www.guru99.com/database-normalization.html",
@@ -64,9 +67,24 @@ def test_find_links_from_markdown(tmp_path, capsys, markdown_text):
         "https://devcenter.heroku.com/articles/postgresql-concurrency",
     ]
 
-# This makes a network call, mocking doesn't make any sense here.
+
 def test_make_request():
-    status_code = url_check._make_request(url="https://httpbin.org/get")
+    # Lame mock function.
+    mock_make_request = create_autospec(core._make_request, return_value=200)
+    status_code = mock_make_request(url="https://httpbin.org/get")
     assert status_code == HTTPStatus.OK
 
 
+def test_log_request(capsys):
+    # Mocking the internally called _make_request function.
+    with patch("md_url_check.core._make_request", lambda url: 200):
+        core._log_request(url="https://httpbin.org/get")
+
+    out, err = capsys.readouterr()
+    assert "" in err
+    assert (
+        """\n\x1b[1m\x1b[95mURL\x1b[0m: \x1b[92mhttps://httpbin.org/get\x1b[0m\n\x1b[1m\x1b[93m"""
+        in out
+    )
+    assert "Status Code\x1b[0m:  \x1b[94m200\x1b[0m ✅\n\x1b[1m\x1b[96m" in out
+    assert "Status Description\x1b[0m: Request fulfilled, document follows\n\n" in out
