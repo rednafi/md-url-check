@@ -46,3 +46,20 @@ def test_find_links_from_chunk():
         ("hello", "https://hello-world.com"),
         ("inline", "http://inline.com"),
     ]
+
+
+def test_find_links_from_markdown(tmp_path, capsys, markdown_text):
+    d = tmp_path / "dest"
+    d.mkdir()
+    p = d / "file.md"
+
+    p.write_text(markdown_text)
+
+    links = url_check._find_links_from_markdown(markdown_path=str(p))
+    assert links == [
+        "https://arxiv.org/pdf/1901.01973.pdf",
+        "https://www.guru99.com/database-normalization.html",
+        "https://www.guru99.com/oltp-vs-olap.html",
+        "https://www.postgresql.org/docs/13/tutorial-transactions.html",
+        "https://devcenter.heroku.com/articles/postgresql-concurrency",
+    ]
