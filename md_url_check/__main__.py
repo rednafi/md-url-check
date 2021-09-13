@@ -3,14 +3,15 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as confu
 import itertools
-import re
 import socket
+import subprocess
 import sys
-import urllib.request
 from collections.abc import Generator
 from enum import Enum
 from http import HTTPStatus
 from typing import NoReturn
+
+import regex as re
 
 
 class Color(str, Enum):
@@ -24,9 +25,12 @@ class Color(str, Enum):
     RESET = "\033[0m"
 
 
-INLINE_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
-FOOTNOTE_LINK_TEXT_RE = re.compile(r"\[([^\]]+)\]\[(\d+)\]")
-FOOTNOTE_LINK_URL_RE = re.compile(r"\[(\d+)\]:\s+(\S+)")
+# NOTE: https://stackoverflow.com/a/67942420/8963300
+INLINE_LINK_RE = re.compile(r"\[([^][]+)\](\(((?:[^()]+|(?2))+)\))")
+
+# NOTE: https://stackoverflow.com/a/30738268/8963300
+FOOTNOTE_URL_TEXT_RE = re.compile(r"\[([^\]]+)\]\[(\d+)\]")
+FOOTNOTE_URL_RE = re.compile(r"\[(\d+)\]:\s+(\S+)")
 
 HTTP_STATUS_TO_DESCRIPTION = {v.value: v.description for v in HTTPStatus}
 
@@ -51,12 +55,12 @@ def _read_chunk(
 def _find_links_from_chunk(*, chunk: str) -> list[tuple[str, str]]:
     """Return list of links in markdown."""
 
-    links = list(INLINE_LINK_RE.findall(chunk))
-    footnote_links = dict(FOOTNOTE_LINK_TEXT_RE.findall(chunk))
-    footnote_urls = dict(FOOTNOTE_LINK_URL_RE.findall(chunk))
+    links = [(i[0], i[2]) for i in INLINE_LINK_RE.findall(chunk)]
+    footnote_url_texts = dict(FOOTNOTE_URL_TEXT_RE.findall(chunk))
+    footnote_urls = dict(FOOTNOTE_URL_RE.findall(chunk))
 
-    for key, val in footnote_links.items():
-        links.append((footnote_links[key], footnote_urls[val]))
+    for k, v in footnote_url_texts.items():
+        links.append((k, footnote_urls[v]))
 
     return links
 
@@ -73,15 +77,18 @@ def _find_links_from_markdown(*, markdown_path: str) -> list[str]:
 
 
 def _make_request(*, url: str) -> int | NoReturn:
-    user_agent = "Mozilla/5.0 (Linux; x64)"
-    headers = {"User-Agent": user_agent}
-    req = urllib.request.Request(url, headers=headers)
-    try:
-        res = urllib.request.urlopen(req)
-    except urllib.error.HTTPError as e:
-        return e.code
 
-    return res.code
+    out = subprocess.run(
+        f'curl -s -o /dev/null --head -A "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36" -w "%{{http_code}}" -X GET "{url}"',
+        shell=True,
+        capture_output=True,
+    )
+
+    if int(out.stdout) in HTTP_STATUS_TO_DESCRIPTION:
+        return int(out.stdout)
+    else:
+        return HTTPStatus.INTERNAL_SERVER_ERROR
+
 
 
 def _log_request(*, url: str, suppress: bool = False) -> int | NoReturn:
@@ -98,7 +105,7 @@ def _log_request(*, url: str, suppress: bool = False) -> int | NoReturn:
     status_code_fancy = f"{Color.BLUE}{status_code}{Color.RESET}"
     status_fancy = (
         f" {status_code_fancy} ✅"
-        if status_code == HTTPStatus.OK
+        if status_code < HTTPStatus.BAD_REQUEST
         else f"{status_code_fancy} ❌"
     )
 
