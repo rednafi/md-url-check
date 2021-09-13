@@ -78,17 +78,18 @@ def _find_links_from_markdown(*, markdown_path: str) -> list[str]:
 
 def _make_request(*, url: str) -> int | NoReturn:
 
-    out = subprocess.run(
+    process = subprocess.run(
         f'curl -s -o /dev/null --head -A "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36" -w "%{{http_code}}" -X GET "{url}"',
         shell=True,
         capture_output=True,
     )
 
-    if int(out.stdout) in HTTP_STATUS_TO_DESCRIPTION:
-        return int(out.stdout)
+    status_code = int(process.stdout)
+
+    if status_code in HTTP_STATUS_TO_DESCRIPTION:
+        return status_code
     else:
         return HTTPStatus.INTERNAL_SERVER_ERROR
-
 
 
 def _log_request(*, url: str, suppress: bool = False) -> int | NoReturn:
