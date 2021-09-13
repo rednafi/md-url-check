@@ -106,7 +106,10 @@ def _log_request(*, url: str, suppress: bool = False) -> int | NoReturn:
     status_code_fancy = f"{Color.BLUE}{status_code}{Color.RESET}"
     status_fancy = (
         f" {status_code_fancy} ✅"
-        if status_code < HTTPStatus.BAD_REQUEST
+        if (
+            status_code == HTTPStatus.TOO_MANY_REQUESTS
+            or status_code < HTTPStatus.BAD_REQUEST
+        )
         else f"{status_code_fancy} ❌"
     )
 
@@ -126,7 +129,10 @@ def _log_request(*, url: str, suppress: bool = False) -> int | NoReturn:
     if not suppress:
         print(row_fancy)
 
-    if status_code >= HTTPStatus.BAD_REQUEST:
+    if not (
+        status_code == HTTPStatus.TOO_MANY_REQUESTS
+        or status_code < HTTPStatus.BAD_REQUEST
+    ):
         raise Exception(
             f"url '{url_fancy}' is unreachable, returned {status_code_fancy} 😞. "
         )
